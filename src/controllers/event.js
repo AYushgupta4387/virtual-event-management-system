@@ -1,13 +1,5 @@
 import Event from "../models/event.js";
-import sgMail from "@sendgrid/mail";
-import dotenv from "dotenv";
-dotenv.config();
-
-const apiKey = process.env.SENDGRID_API_KEY;
-if (!apiKey) {
-  console.error("No API key provided!");
-}
-sgMail.setApiKey(apiKey);
+import EmailService from "../services/email.js";
 
 // Get all events
 export const getAllEvents = async (req, res) => {
@@ -186,40 +178,11 @@ export const registerForEvent = async (req, res) => {
   try {
     const updatedEvent = await event.save();
 
-    const msg = {
-      to: req.user.email, // Recipient's email
-      from: process.env.EMAIL,
-      subject: "Event Registration Successful!",
-      text: `Hi ${userName},
-
-You have successfully registered for the event: ${event.eventName}.
-
-Event Details:
-Date: ${event.date}
-Time: ${event.time}
-
-Thank you!
-`, // Plain-text content
-      html: `
-    <p>Hi <strong>${userName}</strong>,</p>
-    <p>You have successfully registered for the event: <strong>${event.eventName}</strong>.</p>
-    <p><strong>Event Details:</strong></p>
-    <ul>
-      <li><strong>Date:</strong> ${event.date}</li>
-      <li><strong>Time:</strong> ${event.time}</li>
-    </ul>
-    <p>Thank you!</p>
-  `, // HTML content
-    };
-
-    sgMail
-      .send(msg)
-      .then(() => {
-        console.log("Email sent");
-      })
-      .catch((error) => {
-        console.error(error.response.body);
-      });
+    await EmailService.sendEventRegistrationEmail(
+      req.user.email,
+      req.user.userName,
+      updatedEvent
+    );
 
     res.status(200).send({
       message: "Successfully registered for the event.",
